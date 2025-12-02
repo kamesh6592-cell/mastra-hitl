@@ -75,6 +75,12 @@ declare module 'lucide-react' {
   export const ChevronLeft: ComponentType<IconProps>;
   export const ChevronUp: ComponentType<IconProps>;
   
+  // Theme icons
+  export const Sun: ComponentType<IconProps>;
+  export const Moon: ComponentType<IconProps>;
+  export const SunIcon: ComponentType<IconProps>;
+  export const MoonIcon: ComponentType<IconProps>;
+  
   // Add any other icons used in the project as needed
   const lucideReact: {
     [key: string]: ComponentType<IconProps>;

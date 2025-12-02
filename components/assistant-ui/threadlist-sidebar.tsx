@@ -12,6 +12,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { ThreadList } from "@/components/assistant-ui/thread-list";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function ThreadListSidebar({
   ...props
@@ -40,6 +41,7 @@ export function ThreadListSidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+          <ThemeToggle className="mr-2" />
         </div>
       </SidebarHeader>
       <SidebarContent className="aui-sidebar-content px-2">
