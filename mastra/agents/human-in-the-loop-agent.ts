@@ -43,7 +43,7 @@ export const humanInTheLoopAgent = new Agent({
 
       Your goal: Complete tasks effectively while ensuring the user maintains full control through explicit approval at each stage.
 `,
-  model: getGoogleModel("gemini-2.0-flash-exp"),
+  model: getGoogleModel("gemini-2.5-flash"),
   tools: {
     updateTodosTool,
     askForPlanApprovalTool,

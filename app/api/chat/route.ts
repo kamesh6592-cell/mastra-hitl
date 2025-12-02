@@ -8,19 +8,41 @@ import {
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  try {
+    const { messages } = await req.json();
+    
+    console.log("Received messages:", JSON.stringify(messages, null, 2));
 
-  // Validate messages to prevent empty content arrays
-  const validatedMessages = messages.filter((msg: any) => {
-    if (msg.content && Array.isArray(msg.content)) {
-      return msg.content.length > 0;
+    // More robust message validation
+    const validatedMessages = messages.map((msg: any) => {
+      if (!msg || !msg.content) return null;
+      
+      if (Array.isArray(msg.content)) {
+        // Clean up content array
+        const validContent = msg.content.filter((item: any) => {
+          if (typeof item === 'string') return item.trim().length > 0;
+          if (item && typeof item === 'object' && item.text) return item.text.trim().length > 0;
+          if (item && typeof item === 'object' && item.type) return true; // Keep structured content
+          return false;
+        });
+        
+        if (validContent.length === 0) return null;
+        return { ...msg, content: validContent };
+      }
+      
+      if (typeof msg.content === 'string') {
+        return msg.content.trim().length > 0 ? msg : null;
+      }
+      
+      return null;
+    }).filter(Boolean);
+
+    console.log("Validated messages:", JSON.stringify(validatedMessages, null, 2));
+
+    if (validatedMessages.length === 0) {
+      console.log("No valid messages found");
+      return Response.json({ error: "No valid messages provided" }, { status: 400 });
     }
-    return msg.content && msg.content.trim().length > 0;
-  });
-
-  if (validatedMessages.length === 0) {
-    return Response.json({ error: "No valid messages provided" }, { status: 400 });
-  }
 
   const agent = mastra.getAgent("humanInTheLoopAgent");
 
@@ -57,4 +79,8 @@ export async function POST(req: Request) {
       },
     }),
   });
+  } catch (error) {
+    console.error("Chat API error:", error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
