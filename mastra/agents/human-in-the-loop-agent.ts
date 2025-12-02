@@ -6,30 +6,20 @@ import { requestInputTool } from "../tools/request-input";
 import { proposeEmailTool } from "../tools/propose-email-tool";
 import { updateTodosTool } from "../tools/update-todos-tool";
 import { askForPlanApprovalTool } from "../tools/ask-for-plan-approval-tool";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-// Configure Anthropic with proxy by default, or custom API key
-const getAnthropicModel = (modelId: string) => {
-  const userApiKey = process.env.ANTHROPIC_API_KEY;
-  const baseURL = process.env.ANTHROPIC_BASE_URL || "https://anthropic.tsai.assistant-ui.com/v1";
-  const tsaiApiKey = process.env.TSAI_API_KEY;
-
-  // If user provides their own API key, use it directly with Anthropic
-  if (userApiKey) {
-    const anthropic = createAnthropic({ apiKey: userApiKey });
-    return anthropic(modelId);
+// Configure Google AI with API key
+const getGoogleModel = (modelId: string) => {
+  const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  
+  if (!googleApiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is required. Please set it in your .env file.");
   }
 
-  // Otherwise, use the shared proxy with TSAI API key
-  if (!tsaiApiKey) {
-    throw new Error("TSAI_API_KEY is required when using the proxy. Please set it in your .env file.");
-  }
-
-  const anthropic = createAnthropic({
-    baseURL,
-    apiKey: tsaiApiKey,
+  const google = createGoogleGenerativeAI({
+    apiKey: googleApiKey,
   });
-  return anthropic(modelId);
+  return google(modelId);
 };
 
 export const humanInTheLoopAgent = new Agent({
@@ -53,7 +43,7 @@ export const humanInTheLoopAgent = new Agent({
 
       Your goal: Complete tasks effectively while ensuring the user maintains full control through explicit approval at each stage.
 `,
-  model: getAnthropicModel("claude-sonnet-4-20250514"),
+  model: getGoogleModel("gemini-2.0-flash-exp"),
   tools: {
     updateTodosTool,
     askForPlanApprovalTool,

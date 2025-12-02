@@ -140,12 +140,17 @@ Authentication via `TSAI_API_KEY` (pre-generated on USB).
 For unlimited access, add to `.env`:
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...  # Direct Anthropic API access
-FIRECRAWL_API_KEY=fc-...      # Direct Firecrawl API access
-RESEND_API_KEY=re-...         # Required for email functionality
+GOOGLE_GENERATIVE_AI_API_KEY=...    # Google AI API key for Gemini 2.0 Flash model
+FIRECRAWL_API_KEY=fc-...           # Direct Firecrawl API access  
+RESEND_API_KEY=re-...              # Required for email functionality
 ```
 
-When API keys are provided, the app bypasses proxies and connects directly to services.
+Legacy support:
+```bash
+ANTHROPIC_API_KEY=sk-ant-...  # Direct Anthropic API access (legacy)
+```
+
+When API keys are provided, the app connects directly to services.
 
 ## Agent Configuration
 
@@ -169,7 +174,10 @@ instructions: `
 `
 ```
 
-The agent uses Claude Sonnet 4 via either:
+The agent uses Google Gemini 2.0 Flash via:
+- Direct Google AI API with `GOOGLE_GENERATIVE_AI_API_KEY`
+
+Legacy support for Claude Sonnet 4 via:
 1. Shared proxy (`https://anthropic.tsai.assistant-ui.com/v1`) with `TSAI_API_KEY`
 2. Direct Anthropic API with `ANTHROPIC_API_KEY`
 
