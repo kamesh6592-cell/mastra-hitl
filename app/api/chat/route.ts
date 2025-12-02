@@ -13,25 +13,40 @@ export async function POST(req: Request) {
     
     console.log("Received messages:", JSON.stringify(messages, null, 2));
 
-    // More robust message validation
+    // More robust message validation - handle both content and parts formats
     const validatedMessages = messages.map((msg: any) => {
-      if (!msg || !msg.content) return null;
+      if (!msg) return null;
       
-      if (Array.isArray(msg.content)) {
-        // Clean up content array
-        const validContent = msg.content.filter((item: any) => {
-          if (typeof item === 'string') return item.trim().length > 0;
-          if (item && typeof item === 'object' && item.text) return item.text.trim().length > 0;
-          if (item && typeof item === 'object' && item.type) return true; // Keep structured content
+      // Handle messages with 'parts' array (Gemini format from logs)
+      if (msg.parts && Array.isArray(msg.parts)) {
+        const validParts = msg.parts.filter((part: any) => {
+          if (part && typeof part === 'object' && part.text) {
+            return part.text.trim().length > 0;
+          }
           return false;
         });
         
-        if (validContent.length === 0) return null;
-        return { ...msg, content: validContent };
+        if (validParts.length === 0) return null;
+        return { ...msg, parts: validParts };
       }
       
-      if (typeof msg.content === 'string') {
-        return msg.content.trim().length > 0 ? msg : null;
+      // Handle messages with 'content' (standard format)
+      if (msg.content) {
+        if (Array.isArray(msg.content)) {
+          const validContent = msg.content.filter((item: any) => {
+            if (typeof item === 'string') return item.trim().length > 0;
+            if (item && typeof item === 'object' && item.text) return item.text.trim().length > 0;
+            if (item && typeof item === 'object' && item.type) return true; // Keep structured content
+            return false;
+          });
+          
+          if (validContent.length === 0) return null;
+          return { ...msg, content: validContent };
+        }
+        
+        if (typeof msg.content === 'string') {
+          return msg.content.trim().length > 0 ? msg : null;
+        }
       }
       
       return null;
