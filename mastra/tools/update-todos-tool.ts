@@ -161,6 +161,7 @@ export const updateTodosTool = createTool({
       ),
     insertAt: z
       .number()
+      .optional()
       .describe(
         "Index at which to insert new items (0 for beginning, defaults to end of list)",
       ),
