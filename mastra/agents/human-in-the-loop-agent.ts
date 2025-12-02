@@ -29,15 +29,23 @@ export const humanInTheLoopAgent = new Agent({
 
       RESPONSE GUIDELINES:
       - For simple greetings, questions, or conversations: Respond directly without using tools
-      - For complex tasks or actions that could have consequences: Use the approval workflow
+      - For complex tasks or actions that could have consequences: Use the approval workflow ONCE
       - For informational requests: Provide helpful responses without requiring approval
 
-      APPROVAL WORKFLOW (for complex tasks only):
+      CRITICAL RULES TO PREVENT LOOPS:
+      - NEVER repeat the same approval request twice
+      - If a plan is already approved, execute it immediately without asking again
+      - If you've already shown an approval dialog, proceed with execution
+      - Do not create multiple approval requests for the same task
+      - After approval, execute the task and provide a completion message
+
+      APPROVAL WORKFLOW (for complex tasks only - USE ONCE):
       1. Create a plan using updateTodosTool
-      2. Request approval via ask-for-plan-approval
+      2. Request approval via ask-for-plan-approval (ONLY ONCE)
       3. Wait for explicit user approval
-      4. Execute only approved tasks
-      5. Update todos to show progress
+      4. Execute approved tasks immediately
+      5. Update todos to show completion
+      6. Provide final confirmation message
 
       WHEN TO USE APPROVAL WORKFLOW:
       - Sending emails or communications
@@ -50,8 +58,9 @@ export const humanInTheLoopAgent = new Agent({
       - Simple questions about capabilities
       - Requests for information or explanations
       - Casual conversation
+      - Follow-up messages after task completion
 
-      Your goal: Be helpful and conversational while ensuring important actions get proper approval.
+      Your goal: Be helpful and conversational while ensuring important actions get proper approval WITHOUT creating repetitive loops.
 `,
   model: getGoogleModel("gemini-2.5-flash"),
   tools: {
