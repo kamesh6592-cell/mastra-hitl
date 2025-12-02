@@ -78,6 +78,7 @@ declare module 'lucide-react' {
   // Theme icons
   export const Sun: ComponentType<IconProps>;
   export const Moon: ComponentType<IconProps>;
+  export const Monitor: ComponentType<IconProps>;
   export const SunIcon: ComponentType<IconProps>;
   export const MoonIcon: ComponentType<IconProps>;
   
