@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 
   const stream = await agent.stream(convertToModelMessages(validatedMessages), {
     format: "aisdk",
-    maxSteps: 10,
+    maxSteps: 5, // Reduced to prevent excessive tool calls
     modelSettings: {},
     onError: ({ error }: { error: any }) => {
       console.error("Mastra streamVNext onError", error);
