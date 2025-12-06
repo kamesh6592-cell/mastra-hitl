@@ -177,7 +177,7 @@ export const updateTodosTool = createTool({
     if (messages && context.new && context.new.length > 0) {
       const recentApprovals = messages
         .slice(-10) // Check last 10 messages
-        .some(msg => 
+        .some((msg: any) => 
           JSON.stringify(msg).includes("PLAN APPROVED") || 
           JSON.stringify(msg).includes('"approved":true')
         );
