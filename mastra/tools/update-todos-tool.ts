@@ -10,10 +10,10 @@ interface Todo {
 }
 
 interface UpdateTodosContext {
-  new: string[];
-  inProgress: number[];
-  done: number[];
-  clearPreviouslyDone: boolean;
+  new?: string[];
+  inProgress?: number[];
+  done?: number[];
+  clearPreviouslyDone?: boolean;
   insertAt?: number;
 }
 
@@ -45,104 +45,88 @@ const findPreviousTodos = (messages: any[] | undefined): Todo[] => {
 };
 
 const extractTodosFromMessage = (message: any): Todo[] => {
-  if (!message?.content || !Array.isArray(message.content)) {
-    return [];
-  }
+  try {
+    if (!message || !message.content) {
+      return [];
+    }
 
-  for (const content of message.content) {
-    if (isUpdateTodosResult(content)) {
-      try {
-        const result = outputSchema.parse(content.output.value);
-        if (result.todos && Array.isArray(result.todos)) {
-          return result.todos;
-        }
-      } catch (error) {
-        // Invalid schema, continue searching
-        console.error("Failed to parse todos:", error);
+    // Handle array of content items
+    const contentArray = Array.isArray(message.content) ? message.content : [message.content];
+    
+    for (const content of contentArray) {
+      // Check for tool call results
+      if (content.type === "tool-call" && 
+          (content.toolName === "updateTodosTool" || content.toolName === "update-todos-tool") &&
+          content.result && 
+          content.result.todos) {
+        return content.result.todos;
+      }
+
+      // Check for direct todos in content
+      if (content.todos && Array.isArray(content.todos)) {
+        return content.todos;
       }
     }
+
+    // Check for todos directly in message
+    if (message.todos && Array.isArray(message.todos)) {
+      return message.todos;
+    }
+
+    return [];
+  } catch (error) {
+    console.warn('Error extracting todos from message:', error);
+    return [];
   }
-
-  return [];
 };
 
-const isUpdateTodosResult = (content: any): boolean => {
-  return (
-    content?.type === "tool-result" &&
-    (content?.toolName === "updateTodosTool" ||
-      content?.toolName === "askForPlanApprovalTool") &&
-    "output" in content
-  );
-};
-
-const applyTodoUpdates = (
-  currentTodos: Todo[],
-  updates: UpdateTodosContext,
-): Todo[] => {
+const applyUpdatesToTodos = (currentTodos: Todo[], context: UpdateTodosContext): Todo[] => {
   let updatedTodos = [...currentTodos];
 
-  // Automatically transition 'new' todos to 'pending' if they're not being updated
-  updatedTodos = updatedTodos.map((todo, index) => {
-    // If this todo is being explicitly updated, don't auto-transition
-    if (updates.inProgress.includes(index) || updates.done.includes(index)) {
-      return todo;
-    }
-    // Auto-transition from 'new' to 'pending'
-    if (todo.status === "new") {
-      return { ...todo, status: "pending" as TodoStatus };
-    }
-    return todo;
-  });
-
-  // Clear previously done items if requested
-  if (updates.clearPreviouslyDone) {
-    updatedTodos = updatedTodos.filter((todo) => todo.status !== "done");
+  // Clear previously completed todos if requested
+  if (context.clearPreviouslyDone) {
+    updatedTodos = updatedTodos.filter(todo => todo.status !== "done");
   }
 
-  // Add new todos with 'new' status
-  const newTodos: Todo[] = updates.new.map((text) => ({
-    text,
-    status: "new" as TodoStatus,
-  }));
-
-  // Insert new todos at specified position or at the end
-  if (updates.insertAt !== undefined && updates.insertAt >= 0) {
-    // Ensure insertAt doesn't exceed array bounds
-    const insertPosition = Math.min(updates.insertAt, updatedTodos.length);
-    updatedTodos.splice(insertPosition, 0, ...newTodos);
-  } else {
-    // Default: add to the end
-    updatedTodos.push(...newTodos);
+  // Update status for existing todos
+  if (context.inProgress) {
+    context.inProgress.forEach(index => {
+      if (index >= 0 && index < updatedTodos.length) {
+        updatedTodos[index] = { ...updatedTodos[index], status: "in-progress" };
+      }
+    });
   }
 
-  // Update status for in-progress items
-  updateTodoStatuses(updatedTodos, updates.inProgress, "in-progress");
+  if (context.done) {
+    context.done.forEach(index => {
+      if (index >= 0 && index < updatedTodos.length) {
+        updatedTodos[index] = { ...updatedTodos[index], status: "done" };
+      }
+    });
+  }
 
-  // Update status for done items
-  updateTodoStatuses(updatedTodos, updates.done, "done");
+  // Add new todos
+  if (context.new && context.new.length > 0) {
+    const newTodos: Todo[] = context.new.map(text => ({
+      text: text.trim(),
+      status: "new" as TodoStatus
+    }));
+
+    // Insert at specified position or append to end
+    if (typeof context.insertAt === 'number' && context.insertAt >= 0) {
+      const insertIndex = Math.min(context.insertAt, updatedTodos.length);
+      updatedTodos.splice(insertIndex, 0, ...newTodos);
+    } else {
+      updatedTodos.push(...newTodos);
+    }
+  }
 
   return updatedTodos;
 };
 
-const updateTodoStatuses = (
-  todos: Todo[],
-  indices: number[],
-  status: TodoStatus,
-): void => {
-  for (const index of indices) {
-    if (isValidIndex(index, todos)) {
-      todos[index].status = status;
-    }
-  }
-};
-
-const isValidIndex = (index: number, array: any[]): boolean => {
-  return index >= 0 && index < array.length;
-};
-
 // Main tool definition
 export const updateTodosTool = createTool({
-  id: "update-todos",
+  id: "update-todos-tool",
   description:
     "Manage and update a task list to communicate progress and planned actions. Keep the list current throughout the interaction to maintain transparency about ongoing and planned work.",
   inputSchema: z.object({
@@ -173,49 +157,8 @@ export const updateTodosTool = createTool({
     // Retrieve previous todos from message history
     const currentTodos = findPreviousTodos(messages);
 
-    // Check for recent plan approvals - if found, prevent new todo creation
-    if (messages && context.new && context.new.length > 0) {
-      const recentApprovals = messages
-        .slice(-10) // Check last 10 messages
-        .some((msg: any) => 
-          JSON.stringify(msg).includes("PLAN APPROVED") || 
-          JSON.stringify(msg).includes('"approved":true')
-        );
-      
-      if (recentApprovals && currentTodos.length > 0) {
-        // Don't add new todos if there's a recent approval and existing todos
-        console.warn("Blocking duplicate todo creation - plan already approved");
-        context.new = [];
-      }
-    }
-
-    // Check if we're trying to add duplicate todos
-    if (context.new && context.new.length > 0) {
-      const existingTexts = currentTodos.map(todo => todo.text.toLowerCase());
-      const duplicateNew = context.new.filter(text => 
-        existingTexts.includes(text.toLowerCase())
-      );
-      
-      if (duplicateNew.length > 0) {
-        // Filter out duplicates silently
-        context.new = context.new.filter(text => 
-          !existingTexts.includes(text.toLowerCase())
-        );
-      }
-    }
-
-    // If no new todos to add and no status updates, just return current todos
-    if (context.new.length === 0 && 
-        context.inProgress.length === 0 && 
-        context.done.length === 0 &&
-        !context.clearPreviouslyDone) {
-      return {
-        todos: currentTodos,
-      };
-    }
-
-    // Apply updates to the todo list
-    const updatedTodos = applyTodoUpdates(currentTodos, context);
+    // Apply the updates to create the new todo list
+    const updatedTodos = applyUpdatesToTodos(currentTodos, context);
 
     return {
       todos: updatedTodos,
