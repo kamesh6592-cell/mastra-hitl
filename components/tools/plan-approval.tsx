@@ -56,12 +56,30 @@ export const AskForPlanApprovalToolUI = makeAssistantToolUI<
       .filter((todo) => todo.status !== "done")
       .map((todo) => ({ ...todo, status: "pending" as const }));
 
+    console.log('Plan Approval - Latest Todos:', latestTodos);
+    console.log('Plan Approval - Initial Todos:', initialTodos);
+
     const [todos, setTodos] = useState<Todo[]>(initialTodos);
     const [draftValue, setDraftValue] = useState("");
     const itemRefs = useRef<Array<HTMLInputElement | null>>([]);
     const [pendingFocusIndex, setPendingFocusIndex] = useState<number | null>(
       null,
     );
+
+    // Update todos when latestTodos changes (to prevent stale state)
+    useEffect(() => {
+      if (!isCompleted && !isRunning) {
+        const newInitialTodos = latestTodos
+          .filter((todo) => todo.status !== "done")
+          .map((todo) => ({ ...todo, status: "pending" as const }));
+        
+        // Only update if the todos have actually changed
+        if (JSON.stringify(newInitialTodos) !== JSON.stringify(todos)) {
+          console.log('Plan Approval - Updating todos from latest:', newInitialTodos);
+          setTodos(newInitialTodos);
+        }
+      }
+    }, [latestTodos, isCompleted, isRunning]);
 
     useEffect(() => {
       itemRefs.current = itemRefs.current.slice(0, todos.length);

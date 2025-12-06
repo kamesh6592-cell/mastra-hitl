@@ -32,9 +32,13 @@ export const useLatestTodos = () => {
     // Get the most recent tool call result
     const latestToolCall = assistantToolCalls[assistantToolCalls.length - 1];
 
+    console.log('useLatestTodos - Found tool calls:', assistantToolCalls.length);
+    console.log('useLatestTodos - Latest tool call:', latestToolCall.toolName, latestToolCall.result);
+
     try {
       const result = latestToolCall.result as TodosResult;
       if (result?.todos && Array.isArray(result.todos)) {
+        console.log('useLatestTodos - Returning todos:', result.todos);
         return result.todos;
       }
     } catch (e) {

@@ -172,9 +172,26 @@ export const updateTodosTool = createTool({
 
     // Retrieve previous todos from message history
     const currentTodos = findPreviousTodos(messages);
+    
+    console.log('UpdateTodosTool - Current todos:', currentTodos);
+    console.log('UpdateTodosTool - Context:', context);
+
+    // Check if we're trying to add duplicate todos
+    if (context.new && context.new.length > 0) {
+      const existingTexts = currentTodos.map(todo => todo.text);
+      const duplicateNew = context.new.filter(text => existingTexts.includes(text));
+      
+      if (duplicateNew.length > 0) {
+        console.warn('UpdateTodosTool - Attempting to add duplicate todos:', duplicateNew);
+        // Filter out duplicates
+        context.new = context.new.filter(text => !existingTexts.includes(text));
+      }
+    }
 
     // Apply updates to the todo list
     const updatedTodos = applyTodoUpdates(currentTodos, context);
+
+    console.log('UpdateTodosTool - Updated todos:', updatedTodos);
 
     return {
       todos: updatedTodos,
