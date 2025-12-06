@@ -1,6 +1,9 @@
 import { AssistantUIWelcomeEmail } from '@/emails/assistant-ui';
 import * as React from 'react';
 
+export const maxDuration = 30;
+export const runtime = 'nodejs';
+
 // Check if we should use Resend or the email worker
 const useResend = () => {
   return !!process.env.RESEND_API_KEY;
