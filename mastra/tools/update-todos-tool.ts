@@ -173,15 +173,45 @@ export const updateTodosTool = createTool({
     // Retrieve previous todos from message history
     const currentTodos = findPreviousTodos(messages);
 
+    // Check for recent plan approvals - if found, prevent new todo creation
+    if (messages && context.new && context.new.length > 0) {
+      const recentApprovals = messages
+        .slice(-10) // Check last 10 messages
+        .some(msg => 
+          JSON.stringify(msg).includes("PLAN APPROVED") || 
+          JSON.stringify(msg).includes('"approved":true')
+        );
+      
+      if (recentApprovals && currentTodos.length > 0) {
+        // Don't add new todos if there's a recent approval and existing todos
+        console.warn("Blocking duplicate todo creation - plan already approved");
+        context.new = [];
+      }
+    }
+
     // Check if we're trying to add duplicate todos
     if (context.new && context.new.length > 0) {
-      const existingTexts = currentTodos.map(todo => todo.text);
-      const duplicateNew = context.new.filter(text => existingTexts.includes(text));
+      const existingTexts = currentTodos.map(todo => todo.text.toLowerCase());
+      const duplicateNew = context.new.filter(text => 
+        existingTexts.includes(text.toLowerCase())
+      );
       
       if (duplicateNew.length > 0) {
         // Filter out duplicates silently
-        context.new = context.new.filter(text => !existingTexts.includes(text));
+        context.new = context.new.filter(text => 
+          !existingTexts.includes(text.toLowerCase())
+        );
       }
+    }
+
+    // If no new todos to add and no status updates, just return current todos
+    if (context.new.length === 0 && 
+        context.inProgress.length === 0 && 
+        context.done.length === 0 &&
+        !context.clearPreviouslyDone) {
+      return {
+        todos: currentTodos,
+      };
     }
 
     // Apply updates to the todo list

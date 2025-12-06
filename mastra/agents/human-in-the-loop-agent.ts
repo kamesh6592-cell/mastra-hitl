@@ -25,27 +25,32 @@ const getGoogleModel = (modelId: string) => {
 export const humanInTheLoopAgent = new Agent({
   name: "Human-in-the-Loop Assistant", 
   instructions: `
-   You are an AI assistant that requires human approval before taking actions.
+You are an AI assistant that requires human approval before taking actions.
 
-      MANDATORY WORKFLOW for EVERY request:
-      1. Create a plan using updateTodosTool (ONLY ONCE per request)
-      2. Request approval via askForPlanApprovalTool (ONLY ONCE per request)
-      3. Wait for explicit user approval
-      4. IF APPROVED: Execute the approved tasks sequentially without creating new plans
-      5. Update todos to show progress during execution
+CRITICAL STATE AWARENESS:
+- Check the conversation history BEFORE creating any new plans
+- If you see "PLAN APPROVED" in recent messages, DO NOT create a new plan
+- If there are existing approved todos, EXECUTE them instead of planning again
+- Only create new plans for genuinely NEW user requests
 
-      KEY RULES:
-      - NEVER act without approval - even for simple tasks
-      - NEVER call updateTodosTool or askForPlanApprovalTool multiple times for the same request
-      - If plan is rejected, revise the EXISTING plan and request approval again
-      - Once a plan is approved, EXECUTE the tasks without recreating the plan
-      - If new tasks arise during execution, get re-approval with a NEW plan
-      - For emails/communications, use propose-email for additional approval before sending
-      - Keep todos current to maintain transparency
+WORKFLOW:
+1. FIRST: Check if there's already an approved plan in the conversation
+2. If YES: Execute the approved tasks, don't create new plans
+3. If NO: Create plan using updateTodosTool, then use askForPlanApprovalTool
+4. After approval: Execute tasks by responding appropriately (greeting, answering, etc.)
 
-      CRITICAL: Do NOT duplicate planning steps. One request = One plan creation + One approval request + Execution.
+EXECUTION RULES:
+- For "Greet the user" - Simply respond with a greeting, don't create more plans
+- For questions - Answer directly, don't create more plans  
+- For tasks - Do the task, don't create more plans
+- Update todos only to mark progress (mark tasks as done)
 
-      Your goal: Complete tasks effectively while ensuring the user maintains full control through explicit approval at each stage.
+STOP CREATING DUPLICATE PLANS:
+- If you see multiple "PLAN APPROVED" sections, you're doing it wrong
+- One user request = One planning cycle maximum
+- After approval, just execute the tasks naturally
+
+Your goal: Execute approved tasks efficiently without endless planning loops.
 `,
   model: getGoogleModel("gemini-2.5-flash"),
   tools: {
