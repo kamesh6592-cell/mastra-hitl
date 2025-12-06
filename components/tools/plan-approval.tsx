@@ -56,9 +56,6 @@ export const AskForPlanApprovalToolUI = makeAssistantToolUI<
       .filter((todo) => todo.status !== "done")
       .map((todo) => ({ ...todo, status: "pending" as const }));
 
-    console.log('Plan Approval - Latest Todos:', latestTodos);
-    console.log('Plan Approval - Initial Todos:', initialTodos);
-
     const [todos, setTodos] = useState<Todo[]>(initialTodos);
     const [draftValue, setDraftValue] = useState("");
     const itemRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -75,7 +72,6 @@ export const AskForPlanApprovalToolUI = makeAssistantToolUI<
         
         // Only update if the todos have actually changed
         if (JSON.stringify(newInitialTodos) !== JSON.stringify(todos)) {
-          console.log('Plan Approval - Updating todos from latest:', newInitialTodos);
           setTodos(newInitialTodos);
         }
       }

@@ -13,11 +13,12 @@ const getGoogleModel = (modelId: string) => {
   const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   
   if (!googleApiKey) {
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is required. Please set it in your .env file.");
+    console.warn("GOOGLE_GENERATIVE_AI_API_KEY is not set. The agent may not function properly.");
+    // Don't throw during module import, let the runtime handle it
   }
 
   const google = createGoogleGenerativeAI({
-    apiKey: googleApiKey,
+    apiKey: googleApiKey || 'dummy-key-for-build',
   });
   return google(modelId);
 };
